@@ -1,10 +1,10 @@
-from functools import cache, lru_cache
 import json
 import os
 import time
 from collections import Counter
+from functools import cache, lru_cache
 from multiprocessing import Pool
-from typing import BinaryIO
+from typing import BinaryIO, Set
 
 import regex as re
 
@@ -81,20 +81,26 @@ def merge_pair(word_dict, pair):
     return new_word_dict
 
 
-def find_best_pair(word_dict: dict):
-    pair_counter = Counter()
-    for word, cnt in word_dict.items():
-        for p0, p1 in zip(word, word[1:]):
-            pair_counter[(p0, p1)] += cnt
+def find_best_pair(pair_counter):
     return pair_counter.most_common(1)[0][0]
+
+
+def update_pair_counter(pair_counter, best_pair, pair_index, word_freq):
+
+
+
+
+
 
 
 def train_BPE(filepath: str, vocabulary_size: int, special_token: list[str]):
     word_freq = parallelize_preprocess(filepath, special_token, num_processes=4)
+    word_index = list(word_freq.keys())
     vocabulary = init_vocabulary(special_token)
     merges = {}
     merge_index = 0
     loop_start = time.perf_counter()
+    pair_counter, pair_index = init_pair_counter_and_pair_index(word_freq)
     while len(vocabulary) < vocabulary_size:
         if len(vocabulary) % 1000 == 0:
             step_time = time.perf_counter()
@@ -102,19 +108,25 @@ def train_BPE(filepath: str, vocabulary_size: int, special_token: list[str]):
             print(
                 f"Vocabulary size is {len(vocabulary)} spent time {step_spent}s rate: {len(vocabulary) / step_spent} "
             )
-        best_pair = find_best_pair(word_freq)
-        p0, p1 = best_pair
-        merged_token = p0 + p1
-        vocabulary.append(merged_token)
-        merges[(p0.decode("latin-1"), p1.decode("latin-1"))] = merge_index
-        merge_index += 1
+        best_pair = find_best_pair(pair_counter)
+        update_vocabulary_and_merges(best_pair, vocabulary, merges)
         word_freq = merge_pair(word_freq, best_pair)
     vocabulary_dict = {i: b.decode("latin-1") if isinstance(b, bytes) else b for i, b in enumerate(vocabulary)}
     formatted_merges = {f"{k[0]} {k[1]}": v for k, v in merges.items()}
-    with open("vocabulary.json", mode="w", encoding="UTF-8") as f:
+    # with open("vocabulary.json", mode="w", encoding="UTF-8") as f:
+    #     json.dump(vocabulary_dict, f, indent=4, ensure_ascii=False)
+    # with open("merges.json", mode="w", encoding="UTF-8") as f:
+    #     json.dump(formatted_merges, f, indent=4, ensure_ascii=False)
+    with open("vocabulary_5k.json", mode="w", encoding="UTF-8") as f:
         json.dump(vocabulary_dict, f, indent=4, ensure_ascii=False)
-    with open("merges.json", mode="w", encoding="UTF-8") as f:
+    with open("merges_5k.json", mode="w", encoding="UTF-8") as f:
         json.dump(formatted_merges, f, indent=4, ensure_ascii=False)
+
+def update_vocabulary_and_merges(best_pair, vocabulary, merges):
+    p0, p1 = best_pair
+    merged_token = p0 + p1
+    vocabulary.append(merged_token)
+    merges[(p0.decode("latin-1"), p1.decode("latin-1"))] = len(vocabulary) - 1
 
 
 def parallelize_preprocess(filepath, special_token, num_processes):
@@ -159,12 +171,25 @@ def init_vocabulary(special_token: list[str]):
         vocabulary.append(bytes([i]))
     return vocabulary
 
+def init_pair_counter_and_pair_index(word_freq):
+    pair_counter = Counter()
+    pair_index = {}
+    word_index = 0
+    for word, cnt in word_freq.items():
+            for p0, p1 in zip(word, word[1:]):
+                pair_counter[(p0, p1)] += cnt
+                pair_index_set = pair_index.get((p0, p1), list())
+                pair_index_set.append(word_index)
+                pair_index[(p0, p1)] = pair_index_set
+        word_index += 1
+    return pair_counter, pair_index
+
 
 PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
 
 if __name__ == "__main__":
     ## Usage
-    filepath = "../data/TinyStoriesV2-GPT4-valid.txt"
+    filepath = "../data/TinyStoriesV2-GPT4-train.txt"
     num_processes = 4
     special_token = ["<|endoftext|>"]
-    train_BPE(filepath, 10_000, special_token)
+    train_BPE(filepath, 5_000, special_token)
