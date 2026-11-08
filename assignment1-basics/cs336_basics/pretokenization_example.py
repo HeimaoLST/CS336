@@ -87,11 +87,3 @@ def parallelize_preprocess(filepath, special_token, num_processes):
         tuple(bytes([b]) for b in word.encode("UTF-8")): count for word, count in reduces.items()
     }
     return word_freq
-
-
-if __name__ == "__main__":
-    ## Usage
-    filepath = "../data/TinyStoriesV2-GPT4-train.txt"
-    num_processes = 4
-    special_token = ["<|endoftext|>"]
-    train_BPE(filepath, 5_000, special_token)

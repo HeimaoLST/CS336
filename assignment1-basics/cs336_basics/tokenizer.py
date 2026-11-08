@@ -1,8 +1,8 @@
 import os
 import json
-
+import re
 from cs336_basics.utils import str_to_byte_seq
-
+from utils import PAT
 
 class Tokenizer:
     def __init__(self,vocab:dict[int,bytes],merges:list[tuple[bytes,bytes]],special_tokens:list[str] | None) :
@@ -18,3 +18,8 @@ class Tokenizer:
             merges = json.load(f)
         merges = [(str_to_byte_seq(i), str_to_byte_seq(j)) for i, j in merges]
         return cls(vocab, merges, special_tokens)
+    def encode(self,text:str) -> list[int]:
+       tokens = re.findall(PAT, text)
+       tokens_bytes = [str_to_byte_seq(t) for t in tokens]
+       ##merge
+       merged_tokens_bytes = 
