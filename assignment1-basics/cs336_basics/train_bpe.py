@@ -110,13 +110,13 @@ def train_BPE(filepath: str | os.PathLike, vocabulary_size: int, special_token: 
 
 if __name__ == "__main__":
     ## Usage
-    filepath = "data/TinyStoriesV2-GPT4-train.txt"
+    filepath = "data/owt_train.txt"
     special_token = ["<|endoftext|>"]
-    vocab, merges = train_BPE(filepath, 10_000, special_token)
+    vocab, merges = train_BPE(filepath, 32_000, special_token)
     bytes_to_unicode_map = bytes_to_unicode()
     vocab_with_unicode = {byte_seq_to_str(v): i for i, v in vocab.items()}
     merges_with_unicode = [(byte_seq_to_str(k[0]), byte_seq_to_str(k[1])) for k in merges]
-    with open("vocabulary_10k.json", mode="w", encoding="UTF-8") as f:
+    with open("vocabulary_owt.json", mode="w", encoding="UTF-8") as f:
         json.dump(vocab_with_unicode, f, indent=4, ensure_ascii=False)
-    with open("merges_10k.json", mode="w", encoding="UTF-8") as f:
+    with open("merges_owt.json", mode="w", encoding="UTF-8") as f:
         json.dump(merges_with_unicode, f, indent=4, ensure_ascii=False)

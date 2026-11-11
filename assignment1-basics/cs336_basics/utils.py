@@ -44,12 +44,12 @@ def merge_tokens_bytes(tokens_bytes: list[bytes], merges_rank: dict[tuple[bytes,
 
 def merge_token_bytes(token_bytes: bytes, merges_rank: dict[tuple[bytes, bytes], int]):
     parts = [bytes([b]) for b in token_bytes]
-    if len(parts) < 2:
-        return parts
+
     while True:
         new_token = []
         pairs = zip(parts, parts[1:])
-        print(f"pairs list:{pairs}")
+        if len(parts) < 2:
+                return parts
         merge_pair = min(pairs, key=lambda p: merges_rank.get(p, float("inf")))
         if merge_pair not in merges_rank:
             break
